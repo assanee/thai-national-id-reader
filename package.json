@@ -1,0 +1,70 @@
+{
+  "name": "thai-national-id-reader",
+  "version": "0.1.0",
+  "description": "อ่านบัตรประชาชนไทยผ่านเครื่องอ่านสมาร์ทการ์ด PC/SC — Read Thai national ID cards from any PC/SC smart card reader",
+  "author": "assanee",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/assanee/thai-national-id-reader.git"
+  },
+  "homepage": "https://github.com/assanee/thai-national-id-reader#readme",
+  "bugs": {
+    "url": "https://github.com/assanee/thai-national-id-reader/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "thai",
+    "thailand",
+    "national-id",
+    "id-card",
+    "smartcard",
+    "smart-card",
+    "pcsc",
+    "apdu",
+    "acr39u",
+    "card-reader",
+    "บัตรประชาชน"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "thai-id": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "read": "node src/cli.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run verify:package",
+    "verify:package": "node scripts/verify-package.mjs"
+  },
+  "dependencies": {
+    "@pokusew/pcsclite": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
