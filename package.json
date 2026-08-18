@@ -35,6 +35,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./card": {
+      "types": "./dist/card/index.d.ts",
+      "import": "./dist/card.js",
+      "require": "./dist/card.cjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
