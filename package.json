@@ -1,6 +1,6 @@
 {
   "name": "thai-national-id-reader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "อ่านบัตรประชาชนไทยผ่านเครื่องอ่านสมาร์ทการ์ด PC/SC — Read Thai national ID cards from any PC/SC smart card reader",
   "author": "assanee",
   "license": "MIT",
