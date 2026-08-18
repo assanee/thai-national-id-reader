@@ -19,9 +19,38 @@ npm install thai-national-id-reader
 - **Windows** ใช้ไดรเวอร์ CCID ที่มากับระบบ หรือติดตั้งไดรเวอร์จาก ACS
 - **Linux** ต้องติดตั้ง `pcscd` และ `libpcsclite-dev` แล้วสั่ง `sudo systemctl start pcscd`
 
-> แพ็กเกจนี้พึ่ง `@pokusew/pcsclite` ซึ่งเป็น native addon โดยปกติจะดาวน์โหลด binary สำเร็จรูปมาให้
-> ถ้าแพลตฟอร์มของคุณไม่มี binary พร้อมใช้ เครื่องต้องมี build toolchain (Xcode CLT บน macOS,
-> `build-essential` บน Linux, Visual Studio Build Tools บน Windows)
+### เรื่อง native module ที่ควรรู้ก่อนติดตั้ง
+
+แพ็กเกจนี้พึ่ง `@pokusew/pcsclite` ซึ่งเป็น native addon และ **มี binary สำเร็จรูปถึงแค่ Node 16**
+บน Node รุ่นใหม่กว่านั้นเครื่องจะ compile เอง จึงต้องมี build toolchain
+(Xcode Command Line Tools บน macOS, `build-essential` บน Linux, Visual Studio Build Tools บน Windows)
+
+**ถ้าติดตั้งไม่ผ่านด้วย `ModuleNotFoundError: No module named 'distutils'`**
+
+Python 3.12 ขึ้นไปถอด `distutils` ออกจาก standard library แล้ว แต่ node-gyp รุ่นที่มากับ npm ยังเรียกใช้อยู่
+
+```bash
+# ทางเลือกที่ 1 — ติดตั้ง setuptools ซึ่งมี distutils ให้
+python3 -m pip install setuptools
+npm install thai-national-id-reader
+
+# ทางเลือกที่ 2 — ชี้ไปที่ Python รุ่นที่ยังมี distutils
+npm_config_python=$(which python3.10) npm install thai-national-id-reader
+```
+
+**ถ้าใช้กับ Electron** ต้อง rebuild ให้ตรง ABI ของ Electron ทุกครั้งที่ติดตั้งหรืออัปเกรด Electron
+
+```bash
+npx @electron/rebuild -v <เวอร์ชัน Electron> -f -w @pokusew/pcsclite
+```
+
+ตรวจว่าสำเร็จโดยดูว่ามีโฟลเดอร์ที่ลงท้ายด้วย ABI ของ Electron เช่น `darwin-arm64-114` สำหรับ Electron 24
+
+```bash
+ls node_modules/@pokusew/pcsclite/bin/
+```
+
+หากไม่อยากยุ่งกับ native module เลย ใช้ทางเข้า [`thai-national-id-reader/card`](#ใช้ร่วมกับชั้นฮาร์ดแวร์ของคุณเอง) แทนได้
 
 ## ใช้งานผ่าน CLI
 
@@ -131,6 +160,31 @@ watcher.on('read-error', (error, { reason, willRetry }) => {
 (`card-unresponsive`, `corrupt-data`) ส่วน `timeout` ห้ามลองใหม่ เพราะตัวจับเวลาแค่เลิกรอ
 ไม่ได้ยกเลิก `SCardConnect` ที่ยังค้างถือ handle อยู่ การเชื่อมต่อซ้อนเข้าไปจะทำให้ slot ของ PC/SC
 พังจนต้องถอดสาย USB
+
+## ใช้ร่วมกับชั้นฮาร์ดแวร์ของคุณเอง
+
+ถ้าโปรเจกต์มีไลบรารีเชื่อมต่อเครื่องอ่านอยู่แล้ว (เช่น `smartcard`) หรือรับ APDU ผ่านเครือข่าย
+ใช้ทางเข้า `thai-national-id-reader/card` ซึ่ง **ไม่ import native module ใด ๆ เลย**
+
+```ts
+import { readThaiIdCard } from 'thai-national-id-reader/card';
+
+const card = await readThaiIdCard(
+  async (command, expectedLength) => myTransport.send(command, expectedLength),
+  'T=0',
+  { includePhoto: true },
+);
+```
+
+`transmit` ที่ส่งเข้าไปมีหน้าที่เดียวคือส่งไบต์ไปยังบัตรแล้วคืนคำตอบกลับมา
+ตรรกะเรื่องโปรโตคอล T=0/T=1, GET RESPONSE, TIS-620 และการตรวจข้อมูลจัดการให้ทั้งหมด
+
+ตัวอย่าง adapter สำหรับ `smartcard` — สั้นแค่บรรทัดเดียว:
+
+```js
+const transmit = async (command) =>
+  Buffer.from(await card.issueCommand(new CommandApdu({ bytes: [...command] })));
+```
 
 ## ข้อมูลที่ได้
 
