@@ -3,3 +3,6 @@ dist/
 *.jpg
 *.log
 .DS_Store
+
+# ห้าม commit .npmrc เด็ดขาด อาจมี publish token อยู่ข้างใน
+.npmrc
