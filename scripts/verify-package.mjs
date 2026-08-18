@@ -20,6 +20,20 @@ const sandbox = mkdtempSync(join(tmpdir(), 'verify-package-'));
 const run = (command, args, cwd) =>
   execFileSync(command, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
+/**
+ * ดึงเฉพาะส่วน JSON ออกจาก stdout
+ *
+ * npm รัน lifecycle script (เช่น prepare) ระหว่างทาง ซึ่งเขียน log ปนมากับผลลัพธ์
+ * การ JSON.parse ทั้งก้อนตรง ๆ จึงพังทันทีที่มีบรรทัดอื่นโผล่มาก่อน
+ */
+const parseJson = (output) => {
+  const start = output.indexOf('[');
+  const braceStart = output.indexOf('{');
+  const from = start >= 0 && (braceStart < 0 || start < braceStart) ? start : braceStart;
+  if (from < 0) throw new Error(`หา JSON ในผลลัพธ์ไม่เจอ: ${output.slice(0, 200)}`);
+  return JSON.parse(output.slice(from));
+};
+
 const checks = [];
 const record = (name, fn) => {
   try {
@@ -33,8 +47,8 @@ const record = (name, fn) => {
 try {
   console.log('📦 กำลัง build และแพ็ก...');
   run('npm', ['run', 'build'], projectRoot);
-  const packOutput = run('npm', ['pack', '--pack-destination', sandbox, '--json'], projectRoot);
-  const tarball = join(sandbox, JSON.parse(packOutput)[0].filename);
+  const packOutput = run('npm', ['pack', '--ignore-scripts', '--pack-destination', sandbox, '--json'], projectRoot);
+  const tarball = join(sandbox, parseJson(packOutput)[0].filename);
 
   writeFileSync(
     join(sandbox, 'package.json'),
@@ -101,14 +115,14 @@ try {
   });
 
   record('ไม่มีซอร์สหรือเทสต์หลุดไปกับแพ็กเกจ', () => {
-    const listed = run('npm', ['pack', '--dry-run', '--json'], projectRoot);
-    const files = JSON.parse(listed)[0].files.map((f) => f.path);
+    const listed = run('npm', ['pack', '--ignore-scripts', '--dry-run', '--json'], projectRoot);
+    const files = parseJson(listed)[0].files.map((f) => f.path);
     const leaked = files.filter((f) => f.startsWith('src/') || f.startsWith('tests/'));
     if (leaked.length > 0) throw new Error(`ไฟล์ที่ไม่ควรเผยแพร่หลุดไป: ${leaked.join(', ')}`);
   });
 
   record('native addon ไม่ถูกรวมเข้า bundle', () => {
-    const files = JSON.parse(run('npm', ['pack', '--dry-run', '--json'], projectRoot))[0].files;
+    const files = parseJson(run('npm', ['pack', '--ignore-scripts', '--dry-run', '--json'], projectRoot))[0].files;
     const oversized = files.filter((f) => f.path.endsWith('.js') && f.size > 200_000);
     if (oversized.length > 0) {
       throw new Error(`ไฟล์ใหญ่ผิดปกติ อาจ bundle native เข้าไป: ${oversized.map((f) => f.path)}`);
